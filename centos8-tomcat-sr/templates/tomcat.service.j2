@@ -1,0 +1,26 @@
+[Unit]
+Description=Tomcat Server
+After=syslog.target network.target
+
+[Service]
+Type=forking
+User=tomcat
+Group=tomcat
+
+EnvironmentFile=/etc/systemd/system/tomcat.service
+Environment=JAVA_HOME={{ JAVA_HOME }}
+Environment='JAVA_OPTS=-Djava.awt.headless=true'
+Environment=CATALINA_HOME={{ tomcat_setup_folder }}
+Environment=CATALINA_BASE={{ tomcat_setup_folder }}
+Environment=CATALINA_PID={{ tomcat_setup_folder }}/temp/tomcat.pid
+Environment='CATALINA_OPTS=-Xms512M -Xmx3010M'
+ExecStart={{ tomcat_setup_folder }}/bin/startup.sh
+ExecStop={{ tomcat_setup_folder }}/bin/shutdown.sh
+SuccessExitStatus=143
+
+UMask=0007
+RestartSec=10
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

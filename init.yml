@@ -1,0 +1,10 @@
+---
+
+- name: Istall Tomcat
+  hosts: tomcat_servers      
+  become: yes               
+  become_method: sudo       
+  remote_user: root     
+    
+  roles:
+    - centos8-tomcat-sr

@@ -1,0 +1,97 @@
+---
+# tasks file for CentOS8-Tomcat
+
+- include_vars: tomcat-secrets.yml
+- name: Add EPEL repository
+  yum:
+    name: epel-release
+    state: present
+
+- name: Install basic packages
+  package:
+    name: ['nano','bash-completion','tmux','tree','htop','wget','unzip','curl','git']
+    state: present
+
+- name: Config Firewalld
+  service:
+    name: firewalld
+    state: stopped
+    enabled: no
+  when: ansible_service_mgr == "systemd"
+
+- name: Config SELinux
+  selinux: state=disabled
+
+- name: Install Java 8
+  yum:
+    name: java-1.8.0-openjdk
+    state: present
+
+- name: Add "tomcat" Group
+  group:
+    name: tomcat
+
+- name: Add "tomcat" User
+  user:
+    name: tomcat
+    group: tomcat
+    home: "{{ tomcat_setup_folder }}"
+    createhome: no
+    system: yes
+
+- name: Create a Tomcat Directory
+  file:
+    path: "{{ tomcat_setup_folder }}"
+    state: directory
+    owner: tomcat
+    group: tomcat    
+
+- name: Download Tomcat
+  get_url:
+    url: "{{ tomcat_archive_url }}"
+    dest: "{{ tomcat_archive_dest }}"     
+
+- name: Extract Tomcat Archive
+  unarchive:
+    src: "{{ tomcat_archive_dest }}"
+    dest: "{{ tomcat_setup_folder }}"
+    owner: tomcat
+    group: tomcat
+    remote_src: yes
+    extra_opts: "--strip-components=1"
+    creates: "{{ tomcat_setup_folder }}/bin" 
+
+- name: Copy Tomcat Service File
+  template:
+    src: tomcat.service.j2
+    dest: /etc/systemd/system/tomcat.service
+  when: ansible_service_mgr == "systemd"
+
+- name: Copy tomcat server.xml file, enable SESSION-REPLICATION
+  template:
+    src: server.xml.j2
+    dest: "{{ tomcat_setup_folder }}/conf/server.xml"
+  when: ansible_service_mgr == "systemd"
+  
+- name: Start and Enable Tomcat
+  service:
+    daemon_reload: yes
+    name: tomcat
+    state: started
+    enabled: yes
+  when: ansible_service_mgr == "systemd"  
+
+- name: Set Tomcat Access Credentials
+  template:
+    src: tomcat-users.xml.j2
+    dest: "{{ tomcat_setup_folder }}/conf/tomcat-users.xml"
+  notify: restart tomcat  
+
+- name: Allow access to Manager and Host Manager apps from any IP
+  template:
+    src: context.xml.j2 
+    dest: "{{ item }}"
+  with_items:
+    - "{{ tomcat_setup_folder }}/webapps/host-manager/META-INF/context.xml"
+    - "{{ tomcat_setup_folder }}/webapps/manager/META-INF/context.xml"  
+  notify: restart tomcat
