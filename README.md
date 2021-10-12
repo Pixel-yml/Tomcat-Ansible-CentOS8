@@ -5,6 +5,9 @@ Ansible role for deploying Tomcat with configured Session Replication on CentOS8
 
 # Role Variables
 Main variable (defaults/main.xml):
+1
+2
+3
 - `tomcat_ver`: Tomcat version to install, Default is "9.0.52".
 - `tomcat_setup_folder`: Location in which tomcat will be installed. Default is "/var/lib/tomcat".
 
